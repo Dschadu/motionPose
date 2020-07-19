@@ -18,10 +18,16 @@
     <ClCompile Include="driverlog.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="motion_pose.cpp">
+    <ClCompile Include="WatchdogProvider.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="WatchdogProvider.cpp">
+    <ClCompile Include="driver_motionPose.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="ServerDriver.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="MotionPoseController.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
@@ -33,6 +39,15 @@
       <Filter>Source Files</Filter>
     </ClInclude>
     <ClInclude Include="WatchdogProvider.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="driver_motionPose.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="ServerDriver.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="MotionPoseController.h">
       <Filter>Source Files</Filter>
     </ClInclude>
   </ItemGroup>

@@ -19,12 +19,17 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="driver_motionPose.cpp" />
     <ClCompile Include="driverlog.cpp" />
-    <ClCompile Include="motion_pose.cpp" />
+    <ClCompile Include="MotionPoseController.cpp" />
+    <ClCompile Include="ServerDriver.cpp" />
     <ClCompile Include="WatchdogProvider.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="driver_motionPose.h" />
     <ClInclude Include="driverlog.h" />
+    <ClInclude Include="MotionPoseController.h" />
+    <ClInclude Include="ServerDriver.h" />
     <ClInclude Include="openvr_math.h" />
     <ClInclude Include="WatchdogProvider.h" />
   </ItemGroup>
@@ -93,6 +98,7 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <LinkIncremental>false</LinkIncremental>
     <OutDir>$(SolutionDir)\bin\drivers\motionPose\bin\win64\</OutDir>
+    <IncludePath>openvr\headers;$(IncludePath)</IncludePath>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
@@ -151,8 +157,10 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>NDEBUG;MOTIONPOSE_EXPORTS;_WINDOWS;_USRDLL;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <PrecompiledHeader>Use</PrecompiledHeader>
-      <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+      <PrecompiledHeaderFile>
+      </PrecompiledHeaderFile>
+      <AdditionalIncludeDirectories>openvr\headers;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -160,6 +168,7 @@
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <EnableUAC>false</EnableUAC>
+      <AdditionalDependencies>%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
