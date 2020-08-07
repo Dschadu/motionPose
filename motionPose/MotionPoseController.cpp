@@ -196,14 +196,46 @@ namespace driver
 		{
 			if (openMmf(MapFile_OVRMC, mmfFile_OVRMC, L"Local\\OVRMC_MMFv1", 4096, ovrmcConnected))
 			{
-				Data_OVRMC = (MMFstruct_OVRMC_v1*)mmfFile_OVRMC;
+				// try .. except block catches any error that occurs while trying to read the mmf
+				__try
+				{
+					Data_OVRMC = (MMFstruct_OVRMC_v1*)mmfFile_OVRMC;
+				}
+				__except (GetExceptionCode() == EXCEPTION_IN_PAGE_ERROR ? EXCEPTION_EXECUTE_HANDLER : EXCEPTION_CONTINUE_SEARCH)
+				{
+					LOG(ERROR) << "Failed assign pointer to OVRMC mmf!";
+
+					// Close connection
+					if (CloseHandle(MapFile_OVRMC) == 0)
+					{
+						LOG(ERROR) << "Failed to close OVRMC handle! - 1 -  Error: " << GetLastError();
+					}
+
+					ovrmcConnected = false;
+				}
 			}			
 		}
 		else
 		{
-			// Get data from OVRMC
-			rigOffset = Data_OVRMC->Translation;
-			rigYawOffset = Data_OVRMC->Rotation.v[1];
+			// try .. except block catches any error that occurs while trying to read the mmf
+			__try
+			{
+				// Get data from OVRMC
+				rigOffset = Data_OVRMC->Translation;
+				rigYawOffset = Data_OVRMC->Rotation.v[1];
+			}
+			__except (GetExceptionCode() == EXCEPTION_IN_PAGE_ERROR ? EXCEPTION_EXECUTE_HANDLER : EXCEPTION_CONTINUE_SEARCH)
+			{
+				LOG(ERROR) << "Failed to read from OVRMC mmf!";
+
+				// Close connection
+				if (CloseHandle(MapFile_OVRMC) == 0)
+				{
+					LOG(ERROR) << "Failed to close OVRMC handle! - 2 - Error: " << GetLastError();
+				}
+
+				ovrmcConnected = false;
+			}
 		}
 
 		/*// Turn Right/Left
@@ -240,26 +272,62 @@ namespace driver
 				return pose;
 			}
 
-			rigPose = (MMFstruct_Mover_v1*)mmfFile_Mover;
+			// try .. except block catches any error that occurs while trying to read the mmf
+			__try
+			{
+				rigPose = (MMFstruct_Mover_v1*)mmfFile_Mover;
+			}
+			__except (GetExceptionCode() == EXCEPTION_IN_PAGE_ERROR ? EXCEPTION_EXECUTE_HANDLER : EXCEPTION_CONTINUE_SEARCH)
+			{
+				LOG(ERROR) << "Failed to assign pointer to Mover mmf!";
+
+				// Close connection
+				if (CloseHandle(MapFile_Mover) == 0)
+				{
+					LOG(ERROR) << "Failed to close Mover handle! - 1 - Error: " << GetLastError();
+				}
+
+				moverConnected = false;
+			}
 		}
 
-		pose.poseIsValid = true;
-		pose.result = vr::TrackingResult_Running_OK;		
+		// try .. except block catches any error that occurs while trying to read the mmf
+		__try
+		{
+			// Convert from mm to m
+			vr::HmdVector3d_t rigTranslation = { 0 };
+			rigTranslation.v[0] = rigPose->rigSway / (double)1000.0;
+			rigTranslation.v[1] = rigPose->rigHeave / (double)1000.0;
+			rigTranslation.v[2] = -rigPose->rigSurge / (double)1000.0;
 
-		// Convert from mm to m
-		vr::HmdVector3d_t rigTranslation = { 0 };
-		rigTranslation.v[0] = rigPose->rigSway / (double)1000.0;
-		rigTranslation.v[1] = rigPose->rigHeave / (double)1000.0;
-		rigTranslation.v[2] = -rigPose->rigSurge / (double)1000.0;
+			// Create the rotation. Convert from degree to radian
+			pose.qRotation = vrmath::quaternionFromYawRollPitch(rigYawOffset + rigPose->rigYaw * 0.01745329251994329, -rigPose->rigRoll * 0.01745329251994329, rigPose->rigPitch * 0.01745329251994329);
 
-		// Create the rotation. Convert from degree to radian
-		pose.qRotation = vrmath::quaternionFromYawRollPitch(rigYawOffset + rigPose->rigYaw * 0.01745329251994329, -rigPose->rigRoll * 0.01745329251994329, rigPose->rigPitch * 0.01745329251994329);
+			// Create the translation (XYZ position in 3d space)
+			vr::HmdVector3d_t rigVector = vrmath::quaternionRotateVector(pose.qRotation, rigTranslation) + rigOffset;
+			pose.vecPosition[0] = rigVector.v[0];
+			pose.vecPosition[1] = rigVector.v[1];
+			pose.vecPosition[2] = rigVector.v[2];
 
-		// Create the translation (XYZ position in 3d space)
-		vr::HmdVector3d_t rigVector = vrmath::quaternionRotateVector(pose.qRotation, rigTranslation) + rigOffset;
-		pose.vecPosition[0] = rigVector.v[0];
-		pose.vecPosition[1] = rigVector.v[1];
-		pose.vecPosition[2] = rigVector.v[2];
+			pose.poseIsValid = true;
+			pose.result = vr::TrackingResult_Running_OK;
+		}
+		__except (GetExceptionCode() == EXCEPTION_IN_PAGE_ERROR ? EXCEPTION_EXECUTE_HANDLER : EXCEPTION_CONTINUE_SEARCH)
+		{
+			LOG(ERROR) << "Failed to read from Mover mmf!";
+
+			// Close connection
+			if (CloseHandle(MapFile_Mover) == 0)
+			{
+				LOG(ERROR) << "Failed to close Mover handle! - 2 - Error: " << GetLastError();
+			}
+
+			moverConnected = false;
+
+			// Declare pose as invalid
+			pose.poseIsValid = false;
+			pose.result = vr::TrackingResult_Calibrating_InProgress;
+		}
 
 		return pose;
 	}
