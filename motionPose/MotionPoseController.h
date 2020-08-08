@@ -44,7 +44,7 @@ namespace driver
 		MMFstruct_Mover_v1* rigPose;		
 
 		// pose that is send to SteamVR
-		vr::DriverPose_t pose;
+		vr::DriverPose_t _pose;
 
 		// Offset from zero-point in tracking space
 		vr::HmdVector3d_t rigOffset;
@@ -53,13 +53,13 @@ namespace driver
 		// MMF: FlyPT Mover
 		char* mmfFile_Mover = nullptr;
 		HANDLE MapFile_Mover = NULL;
-		bool moverConnected = false;
+		bool _moverConnected = false;
 
 		// MMF: OVRMC
 		char* mmfFile_OVRMC = nullptr;
 		HANDLE MapFile_OVRMC = NULL;
 		MMFstruct_OVRMC_v1* Data_OVRMC = nullptr;
-		bool ovrmcConnected = false;
+		bool _ovrmcConnected = false;
 
 		// easylogging++ settings
 		const char* logConfigFileName = "logging.conf";
@@ -99,7 +99,7 @@ namespace driver
 
 		void initializeOvrmcMmf();
 
-		bool openMmf(HANDLE& MapFile, char* mmfFile, LPCWSTR szName, int BufferSize, bool& Connected);
+		bool openMmf(HANDLE& MapFile, char*& mmfFile, LPCWSTR szName, int BufferSize, bool& Connected);
 
 		virtual void Deactivate();
 
