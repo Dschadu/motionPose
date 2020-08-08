@@ -6,44 +6,81 @@
 
 namespace driver
 {
+	// struct for OVRMC MMF version 1
+	struct MMFstruct_OVRMC_v1
+	{
+		vr::HmdVector3d_t Translation;
+		vr::HmdVector3d_t Rotation;
+		vr::HmdQuaternion_t QRotation;
+		uint32_t Flags_1;
+		uint32_t Flags_2;
+		double Reserved_double[10];
+		int Reserved_int[10];
+
+		MMFstruct_OVRMC_v1()
+		{
+			Translation = { 0, 0, 0 };
+			Rotation = { 0, 0, 0 };
+			QRotation = { 0, 0, 0, 0 };
+			Flags_1 = 0;
+			Flags_2 = 0;
+		}
+	};
+
+	// struct for FlyPT Mover version 1
+	struct MMFstruct_Mover_v1
+	{
+		double rigSway;
+		double rigSurge;
+		double rigHeave;
+		double rigYaw;
+		double rigRoll;
+		double rigPitch;
+	};
+
 	class CMotionPoseControllerDriver : public vr::ITrackedDeviceServerDriver
 	{
-		#define BUF_SIZE 256
+		// Motion Rig pose as reported from FlyPT Mover
+		MMFstruct_Mover_v1* rigPose;		
 
-		double rigX;
-		double rigY;
-		double rigZ;
-		double rigPitch;
-		double rigRoll;
-		double rigYaw;
-		double rigHeave;
-		double rigSurge;
-		double rigSway;
-		double yawComp;
+		// pose that is send to SteamVR
+		vr::DriverPose_t _pose;
 
-		char* mmfFile;
-		vr::DriverPose_t pose;
-		int hmdDeviceId;
-		bool hmdValid = false;
-		bool moverConnected = false;
-		vr::TrackedDevicePose_t poses[10];
-		HANDLE hMapFile = NULL;
-		vr::HmdVector3d_t rigPos;
+		// Offset from zero-point in tracking space
+		vr::HmdVector3d_t rigOffset;
+		double rigYawOffset;
+
+		// MMF: FlyPT Mover
+		char* mmfFile_Mover = nullptr;
+		HANDLE MapFile_Mover = NULL;
+		bool _moverConnected = false;
+
+		// MMF: OVRMC
+		char* mmfFile_OVRMC = nullptr;
+		HANDLE MapFile_OVRMC = NULL;
+		MMFstruct_OVRMC_v1* Data_OVRMC = nullptr;
+		bool _ovrmcConnected = false;
+
+		// easylogging++ settings
+		const char* logConfigFileName = "logging.conf";
+
+		const char* logConfigDefault =
+			"* GLOBAL:\n"
+			"	FORMAT = \"[%level] %datetime{%Y-%M-%d %H:%m:%s}: %msg\"\n"
+			"	FILENAME = \"driver_motioncompensation.log\"\n"
+			"	ENABLED = true\n"
+			"	TO_FILE = true\n"
+			"	TO_STANDARD_OUTPUT = true\n"
+			"	MAX_LOG_FILE_SIZE = 2097152 ## 2MB\n"
+			"* TRACE:\n"
+			"	ENABLED = false\n"
+			"* DEBUG:\n"
+			"	ENABLED = true\n";
 
 	public:
 		CMotionPoseControllerDriver();
 
 		virtual ~CMotionPoseControllerDriver();
-
-		inline vr::HmdQuaternion_t HmdQuaternion_Init(double w, double x, double y, double z)
-		{
-			vr::HmdQuaternion_t quat;
-			quat.w = w;
-			quat.x = x;
-			quat.y = y;
-			quat.z = z;
-			return quat;
-		}
 
 		inline vr::HmdVector3d_t HmdVector3d_t_Init(double x, double y, double z)
 		{
@@ -56,7 +93,13 @@ namespace driver
 
 		virtual vr::EVRInitError Activate(vr::TrackedDeviceIndex_t unObjectId);
 
-		void initalizeMoverMmf();
+		void init_logging();
+
+		bool initializeMoverMmf();
+
+		void initializeOvrmcMmf();
+
+		bool openMmf(HANDLE& MapFile, char*& mmfFile, LPCWSTR szName, int BufferSize, bool& Connected);
 
 		virtual void Deactivate();
 
