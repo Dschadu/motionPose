@@ -67,7 +67,7 @@ namespace driver
 		const char* logConfigDefault =
 			"* GLOBAL:\n"
 			"	FORMAT = \"[%level] %datetime{%Y-%M-%d %H:%m:%s}: %msg\"\n"
-			"	FILENAME = \"driver_motioncompensation.log\"\n"
+			"	FILENAME = \"driver_motionpose.log\"\n"
 			"	ENABLED = true\n"
 			"	TO_FILE = true\n"
 			"	TO_STANDARD_OUTPUT = true\n"
@@ -95,10 +95,6 @@ namespace driver
 
 		void init_logging();
 
-		bool initializeMoverMmf();
-
-		void initializeOvrmcMmf();
-
 		bool openMmf(HANDLE& MapFile, char*& mmfFile, LPCWSTR szName, int BufferSize, bool& Connected);
 
 		virtual void Deactivate();
@@ -111,6 +107,8 @@ namespace driver
 
 		/** debug request from a client */
 		virtual void DebugRequest(const char* pchRequest, char* pchResponseBuffer, uint32_t unResponseBufferSize);
+
+		std::string GetLastErrorStdStr();
 
 		virtual vr::DriverPose_t GetPose();
 
