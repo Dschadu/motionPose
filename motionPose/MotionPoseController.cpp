@@ -10,7 +10,7 @@ namespace driver
 		m_unObjectId = vr::k_unTrackedDeviceIndexInvalid;
 		m_ulPropertyContainer = vr::k_ulInvalidPropertyContainer;
 
-		m_sSerialNumber = "MotionPoseVirtualController 0.2.0";
+		m_sSerialNumber = "MotionPoseVirtualController 0.2.1";
 		m_sModelNumber = "MotionPoseVirtualController";
 
 		rigYawOffset = 0;
@@ -121,64 +121,101 @@ namespace driver
 			pchResponseBuffer[0] = 0;
 	}
 
+	// Create a string with last error message
+	std::string CMotionPoseControllerDriver::GetLastErrorStdStr()
+	{
+		DWORD error = GetLastError();
+		if (error)
+		{
+			LPVOID lpMsgBuf;
+			DWORD bufLen = FormatMessage(
+				FORMAT_MESSAGE_ALLOCATE_BUFFER |
+				FORMAT_MESSAGE_FROM_SYSTEM |
+				FORMAT_MESSAGE_IGNORE_INSERTS,
+				NULL,
+				error,
+				MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
+				(LPTSTR)&lpMsgBuf,
+				0, NULL);
+			if (bufLen)
+			{
+				LPCSTR lpMsgStr = (LPCSTR)lpMsgBuf;
+				std::string result(lpMsgStr, lpMsgStr + bufLen);
+
+				LocalFree(lpMsgBuf);
+
+				return result;
+			}
+		}
+		return std::string();
+	}
+
 	vr::DriverPose_t CMotionPoseControllerDriver::GetPose()
 	{
-		_pose.poseIsValid = false;
-		_pose.deviceIsConnected = _moverConnected;
-		_pose.shouldApplyHeadModel = false;
-		_pose.willDriftInYaw = false;
-
-		vr::HmdQuaternion_t yaw = vrmath::quaternionFromRotationY(rigYawOffset);
-
-		// Create connection to OVRMC
-		if (!_ovrmcConnected)
+		__try
 		{
-			if (openMmf(MapFile_OVRMC, mmfFile_OVRMC, L"Local\\OVRMC_MMFv1", 4096, _ovrmcConnected))
+			_pose.poseIsValid = false;
+			_pose.deviceIsConnected = _moverConnected;
+			_pose.shouldApplyHeadModel = false;
+			_pose.willDriftInYaw = false;
+
+			vr::HmdQuaternion_t yaw = vrmath::quaternionFromRotationY(rigYawOffset);
+
+			// Create connection to OVRMC
+			if (!_ovrmcConnected)
 			{
-				Data_OVRMC = (MMFstruct_OVRMC_v1*)mmfFile_OVRMC;
-			}			
-		}
-		else
-		{
-			// Get data from OVRMC
-			rigOffset = Data_OVRMC->Translation;
-			rigYawOffset = Data_OVRMC->Rotation.v[1];
-		}
-
-		if (!_moverConnected)
-		{
-			_pose.result = vr::TrackingResult_Calibrating_InProgress;
-			_pose.qRotation = vrmath::quaternionFromYawRollPitch(rigYawOffset, 0, 0);
-
-			// Init was unsuccessful, return empty pose
-			if (!openMmf(MapFile_Mover, mmfFile_Mover, L"Local\\motionRigPose", 4096, _moverConnected))
+				if (openMmf(MapFile_OVRMC, mmfFile_OVRMC, L"Local\\OVRMC_MMFv1", 4096, _ovrmcConnected))
+				{
+					Data_OVRMC = (MMFstruct_OVRMC_v1*)mmfFile_OVRMC;
+				}			
+			}
+			else if (Data_OVRMC != nullptr)
 			{
-				return _pose;
+				// Get data from OVRMC
+				rigOffset = Data_OVRMC->Translation;
+				rigYawOffset = Data_OVRMC->Rotation.v[1];
 			}
 
-			rigPose = (MMFstruct_Mover_v1*)mmfFile_Mover;
+			if (!_moverConnected)
+			{
+				_pose.result = vr::TrackingResult_Calibrating_InProgress;
+				_pose.qRotation = vrmath::quaternionFromYawRollPitch(rigYawOffset, 0, 0);
+
+				// Init was unsuccessful, return empty pose
+				if (!openMmf(MapFile_Mover, mmfFile_Mover, L"Local\\motionRigPose", 4096, _moverConnected))
+				{
+					return _pose;
+				}
+
+				rigPose = (MMFstruct_Mover_v1*)mmfFile_Mover;
+			}
+
+			if (rigPose != nullptr)
+			{
+				// Convert from mm to m
+				vr::HmdVector3d_t rigTranslation = { 0 };
+				rigTranslation.v[0] = rigPose->rigSway / (double)1000.0;
+				rigTranslation.v[1] = rigPose->rigHeave / (double)1000.0;
+				rigTranslation.v[2] = -rigPose->rigSurge / (double)1000.0;
+
+				// Create the rotation. Convert from degree to radian
+				_pose.qRotation = vrmath::quaternionFromYawRollPitch(rigYawOffset + rigPose->rigYaw * 0.01745329251994329, -rigPose->rigRoll * 0.01745329251994329, rigPose->rigPitch * 0.01745329251994329);
+
+				// Create the translation (XYZ position in 3d space)
+				vr::HmdVector3d_t rigVector = vrmath::quaternionRotateVector(_pose.qRotation, rigTranslation) + rigOffset;
+				_pose.vecPosition[0] = rigVector.v[0];
+				_pose.vecPosition[1] = rigVector.v[1];
+				_pose.vecPosition[2] = rigVector.v[2];
+
+				_pose.poseIsValid = true;
+				_pose.result = vr::TrackingResult_Running_OK;
+			}
+			return _pose;
 		}
-
-
-		// Convert from mm to m
-		vr::HmdVector3d_t rigTranslation = { 0 };
-		rigTranslation.v[0] = rigPose->rigSway / (double)1000.0;
-		rigTranslation.v[1] = rigPose->rigHeave / (double)1000.0;
-		rigTranslation.v[2] = -rigPose->rigSurge / (double)1000.0;
-
-		// Create the rotation. Convert from degree to radian
-		_pose.qRotation = vrmath::quaternionFromYawRollPitch(rigYawOffset + rigPose->rigYaw * 0.01745329251994329, -rigPose->rigRoll * 0.01745329251994329, rigPose->rigPitch * 0.01745329251994329);
-
-		// Create the translation (XYZ position in 3d space)
-		vr::HmdVector3d_t rigVector = vrmath::quaternionRotateVector(_pose.qRotation, rigTranslation) + rigOffset;
-		_pose.vecPosition[0] = rigVector.v[0];
-		_pose.vecPosition[1] = rigVector.v[1];
-		_pose.vecPosition[2] = rigVector.v[2];
-
-		_pose.poseIsValid = true;
-		_pose.result = vr::TrackingResult_Running_OK;
-
-		return _pose;
+		__except (GetExceptionCode() == EXCEPTION_IN_PAGE_ERROR ? EXCEPTION_EXECUTE_HANDLER : EXCEPTION_CONTINUE_SEARCH)
+		{
+			throw std::exception();
+		}
 	}
 
 	void CMotionPoseControllerDriver::RunFrame()
@@ -189,7 +226,8 @@ namespace driver
 		}
 		catch (std::exception& e)
 		{			
-			LOG(ERROR) << "MMF failed: " << e.what();
+			LOG(ERROR) << "MMF failed: " << e.what() << " " << GetLastErrorStdStr();
+			
 
 			// Close mover connection
 			if (CloseHandle(MapFile_Mover) == 0)
