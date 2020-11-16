@@ -61,21 +61,6 @@ namespace driver
 		MMFstruct_OVRMC_v1* Data_OVRMC = nullptr;
 		bool _ovrmcConnected = false;
 
-		// easylogging++ settings
-		const char* logConfigFileName = "logging.conf";
-
-		const char* logConfigDefault =
-			"* GLOBAL:\n"
-			"	FORMAT = \"[%level] %datetime{%Y-%M-%d %H:%m:%s}: %msg\"\n"
-			"	FILENAME = \"driver_motionpose.log\"\n"
-			"	ENABLED = true\n"
-			"	TO_FILE = true\n"
-			"	TO_STANDARD_OUTPUT = true\n"
-			"	MAX_LOG_FILE_SIZE = 2097152 ## 2MB\n"
-			"* TRACE:\n"
-			"	ENABLED = false\n"
-			"* DEBUG:\n"
-			"	ENABLED = true\n";
 
 	public:
 		CMotionPoseControllerDriver();
@@ -92,8 +77,6 @@ namespace driver
 		}
 
 		virtual vr::EVRInitError Activate(vr::TrackedDeviceIndex_t unObjectId);
-
-		void init_logging();
 
 		bool openMmf(HANDLE& MapFile, char*& mmfFile, LPCWSTR szName, int BufferSize, bool& Connected);
 

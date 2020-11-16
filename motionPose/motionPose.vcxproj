@@ -19,15 +19,15 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="dllmain.cpp" />
     <ClCompile Include="driver_motionPose.cpp" />
-    <ClCompile Include="driverlog.cpp" />
     <ClCompile Include="MotionPoseController.cpp" />
     <ClCompile Include="ServerDriver.cpp" />
     <ClCompile Include="WatchdogProvider.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="driver_motionPose.h" />
-    <ClInclude Include="driverlog.h" />
+    <ClInclude Include="logging.h" />
     <ClInclude Include="MotionPoseController.h" />
     <ClInclude Include="ServerDriver.h" />
     <ClInclude Include="openvr_math.h" />

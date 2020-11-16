@@ -3,7 +3,6 @@
 #include "openvr_driver.h"
 //#include "WatchdogProvider.h"
 #include "openvr_math.h"
-#include "driverlog.h"
 #include "MotionPoseController.h"
 
 class CServerDriver_MotionPose : public vr::IServerTrackedDeviceProvider
