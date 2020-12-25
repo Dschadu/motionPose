@@ -15,9 +15,6 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="driverlog.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="WatchdogProvider.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -30,11 +27,11 @@
     <ClCompile Include="MotionPoseController.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="dllmain.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="driverlog.h">
-      <Filter>Source Files</Filter>
-    </ClInclude>
     <ClInclude Include="openvr_math.h">
       <Filter>Source Files</Filter>
     </ClInclude>
@@ -48,6 +45,9 @@
       <Filter>Source Files</Filter>
     </ClInclude>
     <ClInclude Include="MotionPoseController.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="logging.h">
       <Filter>Source Files</Filter>
     </ClInclude>
   </ItemGroup>

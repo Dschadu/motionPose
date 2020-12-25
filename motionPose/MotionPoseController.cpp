@@ -1,16 +1,16 @@
 #include "MotionPoseController.h"
 #include "third-party/easylogging++/easylogging++.h"
 
-INITIALIZE_EASYLOGGINGPP
-
 namespace driver
 {
 	CMotionPoseControllerDriver::CMotionPoseControllerDriver()
 	{
+		LOG(TRACE) << "CMotionPoseControllerDriver()";
+
 		m_unObjectId = vr::k_unTrackedDeviceIndexInvalid;
 		m_ulPropertyContainer = vr::k_ulInvalidPropertyContainer;
 
-		m_sSerialNumber = "MotionPoseVirtualController 0.2.1";
+		m_sSerialNumber = "MotionPoseVirtualController 0.2.2";
 		m_sModelNumber = "MotionPoseVirtualController";
 
 		rigYawOffset = 0;
@@ -34,12 +34,12 @@ namespace driver
 
 	CMotionPoseControllerDriver::~CMotionPoseControllerDriver()
 	{
+		LOG(TRACE) << "~CMotionPoseControllerDriver()";
 	}
 
 	vr::EVRInitError CMotionPoseControllerDriver::Activate(vr::TrackedDeviceIndex_t unObjectId)
 	{
-		init_logging();
-		LOG(INFO) << "Activate motionPoseController\n";
+		LOG(INFO) << "Activate motionPoseController";
 
 		m_unObjectId = unObjectId;
 		m_ulPropertyContainer = vr::VRProperties()->TrackedDeviceToPropertyContainer(m_unObjectId);
@@ -54,21 +54,6 @@ namespace driver
 		vr::VRProperties()->SetInt32Property(m_ulPropertyContainer, vr::Prop_DeviceClass_Int32, vr::TrackedDeviceClass_GenericTracker);
 
 		return vr::VRInitError_None;
-	}
-
-	void CMotionPoseControllerDriver::init_logging()
-	{
-		el::Loggers::addFlag(el::LoggingFlag::DisableApplicationAbortOnFatalLog);
-		el::Configurations conf(logConfigFileName);
-		conf.parseFromText(logConfigDefault);
-		//conf.parseFromFile(logConfigFileName);
-		conf.setRemainingToDefault();
-		el::Loggers::reconfigureAllLoggers(conf);
-
-		LOG(INFO) << "|========================================================================================|";
-		LOG(INFO) << "motionPose dll loaded...";
-		LOG(TRACE) << "Trace messages enabled.";
-		LOG(DEBUG) << "Debug messages enabled.";
 	}
 
 	bool CMotionPoseControllerDriver::openMmf(HANDLE& MapFile, char*& mmfFile, LPCWSTR szName, int BufferSize, bool& Connected)
@@ -91,6 +76,8 @@ namespace driver
 		}
 
 		Connected = true;
+
+		LOG(INFO) << "Successfully connected to " << szName;
 
 		return true;
 	}
@@ -159,14 +146,12 @@ namespace driver
 			_pose.shouldApplyHeadModel = false;
 			_pose.willDriftInYaw = false;
 
-			vr::HmdQuaternion_t yaw = vrmath::quaternionFromRotationY(rigYawOffset);
-
 			// Create connection to OVRMC
 			if (!_ovrmcConnected)
 			{
 				if (openMmf(MapFile_OVRMC, mmfFile_OVRMC, L"Local\\OVRMC_MMFv1", 4096, _ovrmcConnected))
 				{
-					Data_OVRMC = (MMFstruct_OVRMC_v1*)mmfFile_OVRMC;
+					Data_OVRMC = (MMFstruct_OVRMC_v1*)mmfFile_OVRMC;					
 				}			
 			}
 			else if (Data_OVRMC != nullptr)
@@ -210,6 +195,7 @@ namespace driver
 				_pose.poseIsValid = true;
 				_pose.result = vr::TrackingResult_Running_OK;
 			}
+
 			return _pose;
 		}
 		__except (GetExceptionCode() == EXCEPTION_IN_PAGE_ERROR ? EXCEPTION_EXECUTE_HANDLER : EXCEPTION_CONTINUE_SEARCH)
@@ -220,9 +206,11 @@ namespace driver
 
 	void CMotionPoseControllerDriver::RunFrame()
 	{
+		vr::DriverPose_t newPose;
+
 		try
 		{
-			GetPose();
+			newPose = GetPose();
 		}
 		catch (std::exception& e)
 		{			
@@ -245,11 +233,11 @@ namespace driver
 			_ovrmcConnected = false;
 
 			// Declare pose as invalid
-			_pose.poseIsValid = false;
-			_pose.result = vr::TrackingResult_Calibrating_InProgress;
+			newPose.poseIsValid = false;
+			newPose.result = vr::TrackingResult_Calibrating_InProgress;
 		}
 
-		vr::VRServerDriverHost()->TrackedDevicePoseUpdated(m_unObjectId, _pose, sizeof(vr::DriverPose_t));
+		vr::VRServerDriverHost()->TrackedDevicePoseUpdated(m_unObjectId, newPose, sizeof(vr::DriverPose_t));
 
 	}
 };
